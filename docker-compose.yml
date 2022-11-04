@@ -1,0 +1,61 @@
+version: '3.3'
+services:
+  web:
+    container_name: web
+    image: 'acweblabs/nginx-php8.1-fpm'
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - './:/var/www/html:delegated'
+      - 'cache:/var/www/html/var/cache'
+      - '~/.composer:/var/cache/nginx/.composer'
+    environment:
+      - DEPLOY_ENVIRONMENT=development
+      - WEBROOT=/var/www/html/public
+      - PHP_MEM_LIMIT=2048
+      - RUN_SCRIPTS=1
+      - ENABLE_XDEBUG=0
+      - PHP_TIMEZONE=Europe/Brussels
+      - ERRORS=1
+    links:
+      - db
+      - redis
+      - mailcatcher
+      - elasticsearch
+  db:
+    container_name: db
+    image: 'mysql:8.0'
+    volumes:
+      - '~/Projects/infra/conf/mysql/zzz-acsystems.cnf:/etc/mysql/conf.d/zzz-acsystems.cnf'
+      - mysql-8.0-db:/var/lib/mysql
+    ports:
+      - '3306:3306'
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+    restart: unless-stopped
+  mailcatcher:
+    container_name: mailcatcher
+    ports:
+      - '1025:1025'
+      - '1080:1080'
+    restart: unless-stopped
+    image: schickling/mailcatcher
+  redis:
+    container_name: redis
+    ports:
+      - '6379:6379'
+    restart: unless-stopped
+    image: 'redis:alpine'
+  elasticsearch:
+    image: acweblabs/elasticsearch-dev:latest
+    container_name: elasticsearch
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    ports:
+      - 9200:9200
+      - 9300:9300
+volumes:
+  mysql-8.0-db:
+  elasticsearch-data:
+  cache:
